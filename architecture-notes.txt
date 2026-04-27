@@ -1,0 +1,570 @@
+# architecture-notes.txt
+
+# Content Broadcasting System — Architecture Notes
+
+---
+
+# 1. System Overview
+
+The Content Broadcasting System is a backend-only application designed for educational institutions where:
+
+* Teachers upload subject-based educational content
+* Principals approve or reject uploaded content
+* Students access approved live content through public APIs
+
+The system focuses heavily on:
+
+* Authentication & authorization
+* Approval workflows
+* Scheduling & content rotation
+* Subject-wise broadcasting
+* Scalable backend structure
+
+---
+
+# 2. Backend Architecture
+
+The backend is built using:
+
+* Node.js
+* Express.js
+* Prisma ORM
+* PostgreSQL (Neon DB)
+
+Architecture follows a modular layered structure:
+
+```txt
+Routes -> Controllers -> Services -> Database
+```
+
+This separation improves:
+
+* scalability
+* maintainability
+* testing
+* readability
+
+---
+
+# 3. Folder Structure Design
+
+```txt
+src/
+├── config/
+├── controllers/
+├── middlewares/
+├── routes/
+├── services/
+├── utils/
+├── validations/
+```
+
+## controllers/
+
+Contains request handling logic.
+
+## routes/
+
+Defines API endpoints and middleware chains.
+
+## middlewares/
+
+Contains reusable middleware:
+
+* authentication
+* role authorization
+* validation
+* rate limiting
+* error handling
+
+## services/
+
+Contains business logic separated from controllers.
+
+Example:
+
+* rotation scheduling logic
+
+## config/
+
+Stores application configuration:
+
+* database
+* multer
+* swagger
+* environment validation
+
+---
+
+# 4. Authentication & RBAC Flow
+
+Authentication is implemented using JWT.
+
+## Login Flow
+
+1. User logs in using email/password
+2. Password verified using bcryptjs
+3. JWT token generated
+4. Token returned to client
+
+## Protected Routes
+
+Protected routes require:
+
+```txt
+Authorization: Bearer <token>
+```
+
+JWT middleware:
+
+* verifies token
+* extracts user data
+* attaches user to request object
+
+---
+
+## Role-Based Access Control
+
+Two roles exist:
+
+* PRINCIPAL
+* TEACHER
+
+RBAC middleware restricts route access.
+
+### Examples
+
+Teacher-only:
+
+```txt
+/api/content/upload
+```
+
+Principal-only:
+
+```txt
+/api/approval/*
+```
+
+This ensures strict permission separation.
+
+---
+
+# 5. Upload Handling Approach
+
+File uploads are handled using Multer.
+
+## Upload Features
+
+* Local disk storage
+* File size validation
+* MIME type validation
+* Unique file naming
+
+Supported formats:
+
+* JPG
+* PNG
+* GIF
+
+Maximum file size:
+
+* 10MB
+
+---
+
+# 6. Approval Workflow Design
+
+Content follows this lifecycle:
+
+```txt
+PENDING -> APPROVED
+PENDING -> REJECTED
+```
+
+## Workflow
+
+1. Teacher uploads content
+2. Content stored with status=PENDING
+3. Principal reviews pending content
+4. Principal approves or rejects
+5. Rejection reason stored if rejected
+
+Only APPROVED content becomes eligible for broadcasting.
+
+---
+
+# 7. Scheduling System Design
+
+Scheduling is teacher-controlled.
+
+Each content item includes:
+
+* startTime
+* endTime
+* duration
+* rotationOrder
+
+Content becomes ACTIVE only when:
+
+```txt
+current_time >= startTime
+AND
+current_time <= endTime
+```
+
+Content outside the active time window is automatically excluded.
+
+---
+
+# 8. Subject-Based Broadcasting Design
+
+The broadcasting system groups content by subject.
+
+Examples:
+
+* Maths
+* Science
+* English
+
+Each subject has:
+
+* independent rotation
+* independent scheduling
+* separate broadcasting sequence
+
+This ensures content from one subject does not interfere with another.
+
+---
+
+# 9. Rotation Scheduling Logic
+
+The rotation engine is the core business logic of the system.
+
+Each content item contains:
+
+* rotationOrder
+* duration (minutes)
+
+The system dynamically determines which content should currently be active.
+
+---
+
+## Rotation Example
+
+| Content | Duration |
+| ------- | -------- |
+| A       | 5 mins   |
+| B       | 5 mins   |
+| C       | 5 mins   |
+
+Rotation cycle:
+
+```txt
+0-5 mins   -> A
+5-10 mins  -> B
+10-15 mins -> C
+15-20 mins -> A again
+```
+
+---
+
+## Rotation Algorithm
+
+The algorithm uses modulo arithmetic:
+
+```js
+const cyclePosition =
+  currentMinute % totalDuration;
+```
+
+Advantages:
+
+* Infinite looping
+* No cron jobs required
+* Deterministic scheduling
+* Lightweight computation
+* Horizontally scalable
+
+This approach avoids maintaining server-side timers.
+
+---
+
+# 10. Database Design Decisions
+
+Database uses PostgreSQL with Prisma ORM.
+
+## Main Tables
+
+### User
+
+Stores:
+
+* authentication data
+* role information
+
+### Content
+
+Stores:
+
+* uploaded content
+* scheduling information
+* approval status
+
+### ContentSlot
+
+Represents subject slots.
+
+### ContentSchedule
+
+Stores:
+
+* duration
+* rotation order
+* slot mapping
+
+---
+
+## Relationship Design
+
+### User -> Content
+
+One-to-many relationship:
+
+```txt
+One teacher -> many uploaded content items
+```
+
+### Content -> ContentSchedule
+
+One-to-one scheduling association.
+
+### ContentSlot -> ContentSchedule
+
+Used for subject-based grouping.
+
+---
+
+# 11. Middleware Usage
+
+Several reusable middlewares are used.
+
+## auth.middleware.js
+
+Verifies JWT tokens.
+
+## role.middleware.js
+
+Handles RBAC authorization.
+
+## validate.middleware.js
+
+Validates request bodies using Zod.
+
+## error.middleware.js
+
+Handles centralized error responses.
+
+## rateLimiter.middleware.js
+
+Protects APIs from abuse.
+
+---
+
+# 12. Validation Strategy
+
+Validation is implemented using Zod.
+
+Benefits:
+
+* centralized validation
+* clean request validation
+* better error messages
+* reusable schemas
+
+Validation includes:
+
+* required fields
+* duration validation
+* schedule validation
+* request body validation
+
+---
+
+# 13. Error Handling Strategy
+
+Global centralized error middleware is implemented.
+
+Handles:
+
+* Multer upload errors
+* validation errors
+* server errors
+* file size violations
+* unsupported file types
+
+This avoids repetitive try/catch response handling.
+
+---
+
+# 14. Public Broadcasting API Design
+
+Public endpoint:
+
+```txt
+GET /api/content/live/:teacherId
+```
+
+Features:
+
+* no authentication required
+* approved content only
+* schedule-aware filtering
+* subject-wise rotation
+
+The API returns only safe public fields.
+
+Internal metadata is hidden.
+
+---
+
+# 15. Edge Cases Handled
+
+## No Content Available
+
+Returns empty response safely.
+
+## Invalid Teacher
+
+Returns empty response instead of server failure.
+
+## Expired Content
+
+Automatically excluded.
+
+## Invalid Uploads
+
+Blocked using Multer validation.
+
+## Unauthorized Access
+
+Blocked using RBAC middleware.
+
+---
+
+# 16. Security Considerations
+
+Implemented security measures:
+
+* JWT authentication
+* bcrypt password hashing
+* Helmet middleware
+* Rate limiting
+* Request validation
+* Role-based authorization
+* Hidden sensitive fields
+
+Passwords are never stored in plain text.
+
+---
+
+# 17. Scalability Considerations
+
+The system is designed with scalability in mind.
+
+## Current Design Strengths
+
+* Modular architecture
+* Stateless JWT authentication
+* Lightweight scheduling computation
+* Database normalization
+* Service-layer business logic
+
+---
+
+## Future Scalability Improvements
+
+### Redis Caching
+
+Cache:
+
+```txt
+/api/content/live/:teacherId
+```
+
+for reduced database load.
+
+---
+
+### Queue-Based Processing
+
+Use:
+
+* BullMQ
+* RabbitMQ
+
+for:
+
+* async processing
+* notifications
+* analytics
+
+---
+
+### Cloud Storage
+
+Replace local uploads with:
+
+* AWS S3
+* Cloudinary
+
+for scalable file handling.
+
+---
+
+### Docker Support
+
+Containerize application for:
+
+* portability
+* CI/CD
+* cloud deployment
+
+---
+
+# 18. Deployment Architecture
+
+## Backend Hosting
+
+Render
+
+## Database Hosting
+
+Neon PostgreSQL
+
+This combination provides:
+
+* serverless PostgreSQL
+* managed deployment
+* production-ready infrastructure
+
+---
+
+# 19. Conclusion
+
+The system was designed to prioritize:
+
+* clean backend architecture
+* scalable scheduling logic
+* maintainability
+* security
+* real-world workflow handling
+
+Special focus was placed on:
+
+* approval workflow correctness
+* subject-wise scheduling
+* continuous rotation logic
+* robust edge case handling
+
+The implementation is modular and extensible, allowing future improvements such as caching, queues, analytics, and cloud storage integration.
