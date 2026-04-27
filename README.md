@@ -14,6 +14,16 @@ Built using:
 
 ---
 
+---
+
+## 🏗 System Architecture
+
+![System Design](./assets/Systemarch.png)
+
+> High-level architecture showing API layer, Redis (multi-role), worker system, and realtime communication.
+
+---
+
 # Features
 
 ## Authentication & Authorization
