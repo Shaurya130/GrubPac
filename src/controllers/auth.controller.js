@@ -53,14 +53,12 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // validation
   if (!email || !password) {
     return res.status(400).json({
       message: 'Email and password required',
     });
   }
 
-  // user exists
   const user = await prisma.user.findUnique({
     where: {
       email,
@@ -73,7 +71,6 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  // compare password
   const isMatch = await bcrypt.compare(
     password,
     user.passwordHash
@@ -85,7 +82,6 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  // token
   const token = generateToken(user);
 
   res.status(200).json({

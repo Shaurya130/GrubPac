@@ -12,28 +12,24 @@ export const uploadContent = asyncHandler(async (req, res) => {
     duration,
   } = req.body;
 
-  // validation
   if (!title || !subject) {
     return res.status(400).json({
       message: 'Title and subject are required',
     });
   }
 
-  // file validation
   if (!req.file) {
     return res.status(400).json({
       message: 'File is required',
     });
   }
 
-  // scheduling validation
   if (!startTime || !endTime) {
     return res.status(400).json({
       message: 'startTime and endTime are required',
     });
   }
 
-  // find or create subject slot
   let slot = await prisma.contentSlot.findUnique({
     where: {
       subject,
@@ -57,7 +53,6 @@ export const uploadContent = asyncHandler(async (req, res) => {
     });
   }
 
-  // create content
   const content = await prisma.content.create({
     data: {
       title,
@@ -75,7 +70,6 @@ export const uploadContent = asyncHandler(async (req, res) => {
     },
   });
 
-  // get latest rotation order
   const latestSchedule = await prisma.contentSchedule.findFirst({
     where: {
       slotId: slot.id,
@@ -86,12 +80,10 @@ export const uploadContent = asyncHandler(async (req, res) => {
     },
   });
 
-  // next order
   const nextRotationOrder = latestSchedule
     ? latestSchedule.rotationOrder + 1
     : 1;
 
-  // create schedule
   const schedule = await prisma.contentSchedule.create({
     data: {
       contentId: content.id,
@@ -156,7 +148,6 @@ export const getLiveContent = asyncHandler(async (
 
   const now = new Date();
 
-  // fetch approved + scheduled content
   const content = await prisma.content.findMany({
     where: {
       uploadedById: teacherId,
@@ -177,7 +168,6 @@ export const getLiveContent = asyncHandler(async (
     },
   });
 
-  // no content
   if (!content.length) {
     return res.status(200).json({
       message: 'No content available',
@@ -185,7 +175,6 @@ export const getLiveContent = asyncHandler(async (
     });
   }
 
-  // group by subject
   const subjectMap = {};
 
   for (const item of content) {
@@ -196,7 +185,6 @@ export const getLiveContent = asyncHandler(async (
     subjectMap[item.subject].push(item);
   }
 
-  // rotate subject-wise
   const liveContent = {};
 
   for (const subject in subjectMap) {

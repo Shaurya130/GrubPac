@@ -6,7 +6,7 @@ const errorMiddleware = (
 ) => {
   console.log(err);
 
-  // multer file size
+  
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
       success: false,
@@ -15,7 +15,6 @@ const errorMiddleware = (
     });
   }
 
-  // multer invalid file
   if (
     err.message?.includes('Only JPG')
   ) {
@@ -26,7 +25,6 @@ const errorMiddleware = (
     });
   }
 
-  // zod validation
   if (err.name === 'ZodError') {
     return res.status(400).json({
       success: false,
