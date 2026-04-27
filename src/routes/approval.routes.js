@@ -12,6 +12,52 @@ import {
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Approval
+ *   description: Principal approval APIs
+ */
+
+/**
+ * @swagger
+ * /api/approval/pending:
+ *   get:
+ *     summary: Get pending content
+ *     tags: [Approval]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending content fetched
+ */
+
+/**
+ * @swagger
+ * /api/approval/{id}/approve:
+ *   patch:
+ *     summary: Approve content
+ *     tags: [Approval]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Content approved
+ */
+
+/**
+ * @swagger
+ * /api/approval/{id}/reject:
+ *   patch:
+ *     summary: Reject content
+ *     tags: [Approval]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Content rejected
+ */
+
 router.get(
   '/pending',
 

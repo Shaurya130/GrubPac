@@ -20,6 +20,43 @@ import {
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Content
+ *   description: Content APIs
+ */
+
+/**
+ * @swagger
+ * /api/content/upload:
+ *   post:
+ *     summary: Upload content
+ *     tags: [Content]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Content uploaded successfully
+ */
+
+/**
+ * @swagger
+ * /api/content/live/{teacherId}:
+ *   get:
+ *     summary: Get live content
+ *     tags: [Content]
+ *     parameters:
+ *       - in: path
+ *         name: teacherId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Live content fetched
+ */
+
 router.post(
   '/upload',
 
