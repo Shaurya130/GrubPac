@@ -7,14 +7,12 @@ import generateToken from '../utils/jwt.js';
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
 
-  // validation
   if (!name || !email || !password || !role) {
     return res.status(400).json({
       message: 'All fields are required',
     });
   }
 
-  // email exists
   const existingUser = await prisma.user.findUnique({
     where: {
       email,
@@ -27,10 +25,8 @@ export const register = asyncHandler(async (req, res) => {
     });
   }
 
-  // hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // create user
   const user = await prisma.user.create({
     data: {
       name,
@@ -40,7 +36,6 @@ export const register = asyncHandler(async (req, res) => {
     },
   });
 
-  // token
   const token = generateToken(user);
 
   res.status(201).json({

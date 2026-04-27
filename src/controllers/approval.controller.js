@@ -43,7 +43,6 @@ export const getPendingContent = asyncHandler(async (req, res) => {
 export const approveContent = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // find content
   const content = await prisma.content.findUnique({
     where: {
       id,
@@ -56,14 +55,13 @@ export const approveContent = asyncHandler(async (req, res) => {
     });
   }
 
-  // already approved
   if (content.status === 'APPROVED') {
     return res.status(400).json({
       message: 'Content already approved',
     });
   }
 
-  // approve
+ 
   const updatedContent = await prisma.content.update({
     where: {
       id,
@@ -92,14 +90,12 @@ export const rejectContent = asyncHandler(async (req, res) => {
 
   const { reason } = req.body;
 
-  // rejection reason required
   if (!reason) {
     return res.status(400).json({
       message: 'Rejection reason is required',
     });
   }
 
-  // find content
   const content = await prisma.content.findUnique({
     where: {
       id,
@@ -112,7 +108,7 @@ export const rejectContent = asyncHandler(async (req, res) => {
     });
   }
 
-  // reject
+
   const updatedContent = await prisma.content.update({
     where: {
       id,
